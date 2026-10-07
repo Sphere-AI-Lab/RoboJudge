@@ -1,0 +1,12 @@
+# Minimal runtime dependencies for RoboJudge-9B inference and evaluation.
+# Install a PyTorch build compatible with your CUDA driver.
+
+accelerate==1.11.0
+av==16.0.0
+huggingface_hub==1.30.0
+numpy==2.4.6
+qwen-vl-utils==0.0.14
+safetensors==0.8.0
+torch>=2.7.0
+torchvision>=0.22.0
+transformers==5.8.0

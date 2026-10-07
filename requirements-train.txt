@@ -1,0 +1,11 @@
+-r requirements.txt
+
+# Training-only dependencies used by the released SFT and GRPO entry points.
+datasets==4.0.0
+deepspeed==0.19.6
+filelock==3.32.3
+peft==0.18.1
+trl==0.24.0
+
+# SFT additionally requires a current LLaMA-Factory checkout with Qwen3.5
+# multimodal support; see TRAINING.md.

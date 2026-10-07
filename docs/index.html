@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="RoboJudge: Multimodal Language Models as Judges for Embodied Video Generation">
+  <meta name="keywords" content="RoboJudge, embodied video generation, multimodal evaluation, physical adherence, instruction alignment">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:title" content="RoboJudge">
+  <meta property="og:description" content="A benchmark, training set, and 9B judge for embodied video generation.">
+  <meta property="og:image" content="assets/robojudge_overview.webp">
+  <title>RoboJudge</title>
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --primary: #4e9fe6;
+      --primary-soft: #eef7ff;
+      --pa: #c94735;
+      --pa-soft: #fff1ed;
+      --ia: #3268b5;
+      --ia-soft: #edf4ff;
+      --ink: #252a34;
+      --muted: #676d78;
+      --line: rgba(0, 0, 0, .09);
+      --shadow: 0 4px 20px rgba(0, 0, 0, .08), 0 1.5px 6px rgba(0, 0, 0, .04);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: #fff; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; line-height: 1.5; }
+    a { color: #287abd; text-decoration: none; }
+    img { max-width: 100%; }
+    .container { width: min(960px, 100%); margin: 0 auto; }
+    .section { padding: 3rem 1.5rem; }
+    .navbar { min-height: 3.25rem; background: #fff; }
+    .navbar-menu, .navbar-start { display: flex; align-items: center; }
+    .navbar-menu { min-height: 3.25rem; }
+    .navbar-item { display: flex; align-items: center; padding: .75rem; }
+    .hero-body { padding: 3rem 1.5rem; }
+    .hero.is-light { background: #fafafa; }
+    .hero.is-small .hero-body { padding: 1.5rem; }
+    .title { margin: 0 0 1.5rem; color: #363636; font-weight: 700; line-height: 1.125; }
+    .title.is-1 { font-size: 3rem; }
+    .title.is-4 { font-size: 1.5rem; }
+    .title.is-5 { font-size: 1.25rem; }
+    .subtitle { margin: -1.25rem 0 1.5rem; color: #4a4a4a; font-weight: 400; line-height: 1.25; }
+    .subtitle.is-4 { font-size: 1.5rem; }
+    .has-text-centered { text-align: center; }
+    .has-text-weight-semibold { font-weight: 600; }
+    .is-size-6 { font-size: 1rem; }
+    .columns { display: flex; margin: -.75rem; }
+    .column { display: block; flex: 1 1 0; padding: .75rem; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.5em; padding: calc(.5em - 1px) 1em; border: 1px solid transparent; border-radius: 4px; line-height: 1.5; cursor: pointer; }
+    .button.is-rounded { border-radius: 9999px; }
+    .button.is-dark { color: #fff; background: #363636; }
+    .button.is-dark:hover { background: #222; }
+    .icon { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; height: 1.25em; }
+    .table { border-collapse: collapse; border-spacing: 0; color: #363636; background: #fff; }
+    .table.is-fullwidth { width: 100%; }
+    .table th, .table td { padding: .6em .75em; border-bottom: 1px solid #dbdbdb; vertical-align: middle; }
+    .footer { padding: 3rem 1.5rem; background: #fafafa; }
+    .publication-title, .section-title, .project-font { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+    .publication-title { font-weight: 700; letter-spacing: -.025em; }
+    .hero-body { padding-bottom: 1.5rem; }
+    .publication-links .button { margin: .25rem; }
+    .authors { max-width: 970px; margin: .65rem auto .4rem; font-size: .98rem; line-height: 1.8; }
+    .author { display: inline-block; margin: 0 .2rem; color: #343a44; font-weight: 700; }
+    .author.profile { text-decoration: underline; text-decoration-color: rgba(0, 0, 0, .25); text-underline-offset: 3px; }
+    .author.profile:hover { color: var(--primary); text-decoration-color: var(--primary); }
+    .author sup { margin-left: .08rem; color: #4d6886; font-size: .68em; }
+    .author-notes { margin: .1rem 0 .45rem; color: #858b94; font-size: .74rem; }
+    .affiliations { max-width: 980px; margin: 0 auto .9rem; color: #626975; font-size: .82rem; line-height: 1.75; }
+    .affiliation { display: inline-block; margin: 0 .32rem; }
+    .project-nav { border-bottom: 1px solid var(--line); box-shadow: none; }
+    .project-nav .navbar-item { color: #555d68; font-size: .92rem; }
+    .project-nav .navbar-item:hover { color: var(--primary); background: transparent; }
+
+    .paper-figure {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, .05);
+    }
+    .paper-figure img { display: block; width: 100%; height: auto; }
+    .figure-caption { margin-top: .7rem; color: #7b8089; font-size: .82rem; text-align: center; }
+
+    .demo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .demo-card { overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, .06); }
+    .demo-card video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #111; object-fit: cover; }
+    .demo-body { padding: 1rem; }
+    .demo-title { margin: 0 0 .35rem; font-weight: 800; }
+    .demo-prompt { min-height: 5.4rem; margin: 0; color: #626975; font-size: .78rem; line-height: 1.5; }
+    .score-row { display: flex; gap: .4rem; margin-top: .75rem; }
+    .score-pill { padding: .2rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 800; }
+    .score-pill.pa { color: #9d3224; background: var(--pa-soft); }
+    .score-pill.ia { color: #255598; background: var(--ia-soft); }
+
+    .paper-box {
+      max-width: 960px;
+      margin: 1.5rem auto;
+      padding: 1.8rem 2.5rem;
+      border: 0;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      font-size: 1.03rem;
+      line-height: 1.75;
+    }
+
+    .axis-card {
+      height: 100%;
+      padding: 1.4rem 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .055);
+    }
+    .axis-card.pa { border-top: 5px solid var(--pa); background: linear-gradient(180deg, var(--pa-soft), #fff 45%); }
+    .axis-card.ia { border-top: 5px solid var(--ia); background: linear-gradient(180deg, var(--ia-soft), #fff 45%); }
+    .axis-card h3 { margin-bottom: .35rem; font: 700 1.28rem "Google Sans", sans-serif; }
+    .axis-card ul { margin: .8rem 0 0 1.15rem; color: #4c5360; }
+    .axis-chip { display: inline-block; margin-bottom: .65rem; padding: .18rem .55rem; border-radius: 6px; color: #fff; font-size: .76rem; font-weight: 800; }
+    .pa .axis-chip { background: var(--pa); }
+    .ia .axis-chip { background: var(--ia); }
+
+    .stat-card {
+      height: 100%;
+      padding: 1.45rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .05);
+    }
+    .stat-value { display: block; color: var(--primary); font: 700 2.2rem/1.1 "Google Sans", sans-serif; }
+    .stat-label { display: block; margin-top: .45rem; color: var(--muted); font-size: .88rem; }
+
+    .leaderboard-summary { margin-bottom: 1.2rem !important; }
+    .podium-card { height: 100%; padding: 1.15rem; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, .05); }
+    .podium-card.first { border-color: rgba(32, 128, 87, .28); background: linear-gradient(145deg, #eaf7f1, #fff 70%); }
+    .podium-rank { float: right; color: #a4a9b0; font: 800 1.7rem "Google Sans", sans-serif; }
+    .podium-card.first .podium-rank { color: #d1a21f; }
+    .podium-name { display: block; padding-right: 2rem; font-weight: 800; }
+    .podium-score { display: block; margin-top: .35rem; color: #208057; font: 700 1.65rem/1.1 "Google Sans", sans-serif; }
+    .podium-meta { color: var(--muted); font-size: .74rem; }
+    .result-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 12px rgba(0, 0, 0, .04); }
+    .result-table { min-width: 680px; margin: 0 !important; font-size: .84rem; }
+    .result-table th { color: #4b5360; background: #f7f8fa; }
+    .result-table thead th { position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+    .result-table th:not(:first-child), .result-table td:not(:first-child) { text-align: center; }
+    .result-table tbody tr:hover td { background: #f7fbff; }
+    .result-table tr.highlight td { color: #154a39; background: #eaf7f1; font-weight: 800; }
+    .rank-cell { width: 3rem; color: #7c838d; font-weight: 800; }
+    .judge-cell { min-width: 225px; text-align: left !important; font-weight: 700; }
+    .category-badge { display: inline-block; margin-left: .35rem; padding: .11rem .36rem; border-radius: 5px; font-size: .61rem; font-weight: 800; vertical-align: .08rem; }
+    .cat-closed { color: #174d84; background: #e3f0ff; }
+    .cat-open { color: #77540f; background: #fff2cf; }
+    .cat-embodied { color: #705099; background: #f1e8fb; }
+    .cat-judge { color: #9b4037; background: #fde8e5; }
+    .cat-ours { color: #176647; background: #dff4ea; }
+    .result-table tbody tr:nth-child(n+11) { display: none; }
+    .delta-note { margin-top: .85rem; color: #66707c; font-size: .85rem; }
+    .delta-note strong { color: #208057; }
+
+    .training-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .training-card { padding: 1.35rem; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, .05); }
+    .training-card small { color: var(--primary); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .training-card h3 { margin: .4rem 0 .45rem; font-size: 1.1rem; }
+    .training-card p { margin: 0; color: var(--muted); font-size: .86rem; }
+
+    .section-band .hero-body { padding: 1.5rem; }
+    .section-band .title { margin: 0; font-family: "Google Sans", sans-serif; }
+    .site-footer { padding: 2rem 1.5rem; color: #777d86; font-size: .84rem; text-align: center; }
+
+    @media (max-width: 768px) {
+      .publication-title { font-size: 2.1rem !important; }
+      .subtitle.is-4 { font-size: 1.15rem; }
+      .paper-box { padding: 1.35rem 1.25rem; }
+      .columns { display: block; margin: 0; }
+      .column { padding: .55rem 0; }
+      .demo-grid, .training-grid { grid-template-columns: 1fr; }
+      .project-nav .navbar-menu { display: flex; box-shadow: none; }
+      .project-nav .navbar-start { display: flex; flex-wrap: wrap; justify-content: center; }
+      .project-nav .navbar-item { padding: .65rem .6rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar project-nav" role="navigation" aria-label="Project navigation">
+    <div class="navbar-menu is-active">
+      <div class="navbar-start" style="flex-grow:1; justify-content:center;">
+        <a class="navbar-item has-text-weight-semibold" href="#overview">Overview</a>
+        <a class="navbar-item" href="#demo">Demo</a>
+        <a class="navbar-item" href="#benchmark">Benchmark</a>
+        <a class="navbar-item" href="#training">Training</a>
+        <a class="navbar-item" href="#results">Leaderboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop has-text-centered">
+        <h1 class="title is-1 publication-title" style="font-size:2.75rem;">RoboJudge</h1>
+        <h2 class="subtitle is-4" style="margin-top:-.45rem;">Multimodal Language Models as Judges for Embodied Video Generation</h2>
+        <div class="authors" aria-label="Authors">
+          <a class="author profile" href="https://openreview.net/profile?id=~Siyuan_Ma4" target="_blank" rel="noopener noreferrer">Siyuan Ma<sup>*†1,2</sup></a>,
+          <span class="author">Yu Qi<sup>*3</sup></span>,
+          <span class="author">Cheng Ye<sup>*4</sup></span>,
+          <span class="author">Ruotian Peng<sup>2,5</sup></span>,
+          <span class="author">Xinyi Xu<sup>3</sup></span>,
+          <span class="author">Zitiantao Lin<sup>3</sup></span>,
+          <span class="author">Zedong Cai<sup>6</sup></span>,
+          <span class="author">Yijian Huang<sup>6</sup></span>,
+          <span class="author">Weiyang Liu<sup>1</sup></span>,
+          <span class="author">Siyuan Wang<sup>✉1</sup></span>,
+          <span class="author">Yandong Wen<sup>✉2</sup></span>
+        </div>
+        <div class="author-notes"><sup>*</sup>Equal contribution. &nbsp; <sup>†</sup>Project Lead. &nbsp; <sup>✉</sup>Corresponding author.</div>
+        <div class="affiliations" aria-label="Affiliations">
+          <span class="affiliation"><sup>1</sup>The Chinese University of Hong Kong</span>
+          <span class="affiliation"><sup>2</sup>Westlake University</span>
+          <span class="affiliation"><sup>3</sup>Northeastern University</span>
+          <span class="affiliation"><sup>4</sup>University of California, San Diego</span>
+          <span class="affiliation"><sup>5</sup>Zhejiang University</span>
+          <span class="affiliation"><sup>6</sup>Independent</span>
+        </div>
+        <p class="is-size-6" style="max-width:760px; margin:0 auto 1rem; color:#666;">
+          Human-aligned evaluation of physical adherence and instruction alignment in generated embodied videos.
+        </p>
+        <div class="publication-links">
+          <a href="https://github.com/Sphere-AI-Lab/RoboJudge" class="button is-rounded is-dark" target="_blank" rel="noopener noreferrer">
+            <span class="icon">⌘</span><span>Code</span>
+          </a>
+          <a href="https://huggingface.co/HuggingFriends/RoboJudge-9B" class="button is-rounded is-dark" target="_blank" rel="noopener noreferrer">
+            <span class="icon">🤗</span><span>Model</span>
+          </a>
+          <a href="https://huggingface.co/datasets/HuggingFriends/RoboJudge-Bench" class="button is-rounded is-dark" target="_blank" rel="noopener noreferrer">
+            <span class="icon">🤗</span><span>Dataset</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="overview" class="section" style="padding-top:1rem;">
+    <div class="container is-max-desktop">
+      <figure>
+        <div class="paper-figure">
+          <img src="assets/robojudge_overview.webp" width="1600" height="814" alt="RoboJudge benchmark, evaluation rubric, statistics, training data, and model overview">
+        </div>
+        <figcaption class="figure-caption">RoboJudge evaluates embodied video generation with human-aligned Physical Adherence and Instruction Alignment judgments.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="demo" class="hero is-light is-small section-band">
+    <div class="hero-body has-text-centered"><h2 class="title is-4">Demo</h2></div>
+  </section>
+  <section class="section">
+    <div class="container is-max-desktop">
+      <p class="has-text-centered" style="max-width:780px; margin:0 auto 1.4rem; color:#626975;">
+        Representative RoboJudge-Bench examples spanning complementary PA/IA outcomes. Videos load only when played.
+      </p>
+      <div class="demo-grid">
+        <article class="demo-card">
+          <video controls playsinline preload="none" poster="assets/demos/03_agibot_world_cosmos3.jpg"><source src="assets/demos/03_agibot_world_cosmos3.mp4" type="video/mp4"></video>
+          <div class="demo-body"><h3 class="demo-title">Physically strong, partially aligned</h3><p class="demo-prompt"><strong>Instruction:</strong> Sort the cotton swab containers and white packages from the two white rectangular containers into the blue tray on the table in the warehouse with the right gripper.</p><div class="score-row"><span class="score-pill pa">PA 5/5</span><span class="score-pill ia">IA 3/5</span></div></div>
+        </article>
+        <article class="demo-card">
+          <video controls playsinline preload="none" poster="assets/demos/09_epickitchens_human_wan26_flash.jpg"><source src="assets/demos/09_epickitchens_human_wan26_flash.mp4" type="video/mp4"></video>
+          <div class="demo-body"><h3 class="demo-title">Instruction aligned</h3><p class="demo-prompt"><strong>Instruction:</strong> Crack the brown egg with your right hand over the black frying pan.</p><div class="score-row"><span class="score-pill pa">PA 3/5</span><span class="score-pill ia">IA 5/5</span></div></div>
+        </article>
+        <article class="demo-card">
+          <video controls playsinline preload="none" poster="assets/demos/10_gr1_inlab_wow_wan14b.jpg"><source src="assets/demos/10_gr1_inlab_wow_wan14b.mp4" type="video/mp4"></video>
+          <div class="demo-body"><h3 class="demo-title">Both axes fail</h3><p class="demo-prompt"><strong>Instruction:</strong> Pick the dark glass from the wooden table and place it into the gray woven basket with the right gripper.</p><div class="score-row"><span class="score-pill pa">PA 1/5</span><span class="score-pill ia">IA 1/5</span></div></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero is-light is-small section-band">
+    <div class="hero-body has-text-centered"><h2 class="title is-4">Abstract</h2></div>
+  </section>
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="paper-box">
+        Video generation models are promising foundations for embodied world models, but only if their generated rollouts are physically valid and faithful to task instructions. Multimodal large language models (MLLMs) are increasingly used to judge these properties, yet their agreement with human judgments on embodied videos has not been systematically evaluated. To address this gap, we introduce <strong>RoboJudge-Bench</strong>, which measures Physical Adherence and Instruction Alignment across 800 human-annotated videos from 8 source corpora and 10 video generators, spanning grippers, human hands, and dexterous hands. Existing general-purpose MLLMs show limited agreement with human judgments, while specialized video judges transfer poorly to embodied scenarios. We therefore construct <strong>RoboJudge-Train</strong>, comprising 12K videos with 25K human-verified scores and rationales, and train <strong>RoboJudge-9B</strong> with supervised learning followed by reinforcement learning. RoboJudge-9B reaches an overall Pearson correlation of <strong>0.719</strong> with human ratings, an absolute improvement of 0.089 over the strongest proprietary baseline in our evaluation, and also improves on VideoPhy2 and Physion-Eval.
+      </div>
+    </div>
+  </section>
+
+  <section id="benchmark" class="hero is-light is-small section-band">
+    <div class="hero-body has-text-centered"><h2 class="title is-4">RoboJudge-Bench</h2></div>
+  </section>
+  <section class="section">
+    <div class="container is-max-desktop">
+      <p class="has-text-centered is-size-5" style="max-width:800px; margin:0 auto 1.5rem; color:#555d68;">
+        Two complementary axes separate whether a rollout is physically believable from whether it performs the requested task.
+      </p>
+      <div class="columns is-variable is-4">
+        <div class="column">
+          <article class="axis-card pa">
+            <span class="axis-chip">PA · 1–5</span>
+            <h3>Physical Adherence</h3>
+            <p>Does the generated rollout obey the physical and temporal constraints of the scene?</p>
+            <ul><li>Agent consistency</li><li>Scene consistency</li><li>Interaction realism</li></ul>
+          </article>
+        </div>
+        <div class="column">
+          <article class="axis-card ia">
+            <span class="axis-chip">IA · 1–5</span>
+            <h3>Instruction Alignment</h3>
+            <p>Does the rollout preserve the intended agent, manipulate the correct object, and achieve the goal?</p>
+            <ul><li>Agent match</li><li>Object correctness</li><li>Goal completion</li></ul>
+          </article>
+        </div>
+      </div>
+      <div class="columns is-variable is-3" style="margin-top:.6rem;">
+        <div class="column"><div class="stat-card"><span class="stat-value">800</span><span class="stat-label">human-annotated test videos</span></div></div>
+        <div class="column"><div class="stat-card"><span class="stat-value">8</span><span class="stat-label">embodied source corpora</span></div></div>
+        <div class="column"><div class="stat-card"><span class="stat-value">10</span><span class="stat-label">test video generators</span></div></div>
+        <div class="column"><div class="stat-card"><span class="stat-value">29</span><span class="stat-label">MLLM judges evaluated</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="training" class="hero is-light is-small section-band">
+    <div class="hero-body has-text-centered"><h2 class="title is-4">RoboJudge-Train &amp; RoboJudge-9B</h2></div>
+  </section>
+  <section class="section">
+    <div class="container is-max-desktop">
+      <div class="paper-box" style="margin-top:0;">
+        RoboJudge-Train contains 12K embodied videos annotated with 25K human scores and rationales for PA and IA. The released training annotations contain <strong>12,351 PA records</strong> and <strong>11,520 IA records</strong>. RoboJudge-9B is the resulting embodied-specialized multimodal judge; model weights and video assets are hosted on Hugging Face.
+      </div>
+      <div class="training-grid">
+        <article class="training-card"><small>Stage 1</small><h3>Supervised Fine-Tuning</h3><p>Full-parameter language-model training with the vision tower and multimodal projector frozen, using the released PA and IA rationales.</p></article>
+        <article class="training-card"><small>Stage 2</small><h3>GRPO Refinement</h3><p>Multimodal GRPO with a schema-aware ordinal reward for exact and adjacent PA/IA score agreement.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="results" class="hero is-light is-small section-band">
+    <div class="hero-body has-text-centered"><h2 class="title is-4">Judge Leaderboard</h2></div>
+  </section>
+  <section class="section">
+    <div class="container is-max-desktop">
+      <h3 class="title is-5 has-text-centered project-font">Agreement with human ratings on RoboJudge-Bench</h3>
+      <p class="has-text-centered" style="max-width:780px; margin:-.5rem auto 1.4rem; color:#6b727d; font-size:.88rem;">
+        Top 10 model judges ranked by pooled Overall Pearson correlation on the same 800-video benchmark.
+      </p>
+      <div class="columns is-variable is-3 leaderboard-summary">
+        <div class="column"><div class="podium-card first"><span class="podium-rank">#1</span><span class="podium-name">RoboJudge-9B</span><span class="podium-score">0.719</span><span class="podium-meta">Overall Pearson r · Ours</span></div></div>
+        <div class="column"><div class="podium-card"><span class="podium-rank">#2</span><span class="podium-name">Gemini-3.7-Flash</span><span class="podium-score">0.630</span><span class="podium-meta">Overall Pearson r · Closed-source</span></div></div>
+        <div class="column"><div class="podium-card"><span class="podium-rank">#3</span><span class="podium-name">GPT-5.2</span><span class="podium-score">0.626</span><span class="podium-meta">Overall Pearson r · Closed-source</span></div></div>
+      </div>
+      <div class="result-table-wrap">
+        <table class="table is-fullwidth is-hoverable result-table" id="leaderboard-table">
+          <thead><tr><th>Rank</th><th>Judge</th><th>PA r</th><th>IA r</th><th>Overall r</th></tr></thead>
+          <tbody id="leaderboard-body">
+            <tr class="highlight" data-category="judge" data-pa="0.645" data-ia="0.775" data-overall="0.719"><td class="rank-cell">1</td><td class="judge-cell">RoboJudge-9B <span class="category-badge cat-ours">OURS</span></td><td>0.645</td><td><strong>0.775</strong></td><td><strong>0.719</strong></td></tr>
+            <tr data-category="closed" data-pa="0.611" data-ia="0.709" data-overall="0.630"><td class="rank-cell">2</td><td class="judge-cell">Gemini-3.7-Flash <span class="category-badge cat-closed">CLOSED</span></td><td>0.611</td><td>0.709</td><td>0.630</td></tr>
+            <tr data-category="closed" data-pa="0.499" data-ia="0.722" data-overall="0.626"><td class="rank-cell">3</td><td class="judge-cell">GPT-5.2 <span class="category-badge cat-closed">CLOSED</span></td><td>0.499</td><td>0.722</td><td>0.626</td></tr>
+            <tr data-category="closed" data-pa="0.590" data-ia="0.694" data-overall="0.619"><td class="rank-cell">4</td><td class="judge-cell">Seed-2.1-Lite <span class="category-badge cat-closed">CLOSED</span></td><td>0.590</td><td>0.694</td><td>0.619</td></tr>
+            <tr data-category="closed" data-pa="0.489" data-ia="0.733" data-overall="0.618"><td class="rank-cell">5</td><td class="judge-cell">GPT-5.5 <span class="category-badge cat-closed">CLOSED</span></td><td>0.489</td><td>0.733</td><td>0.618</td></tr>
+            <tr data-category="closed" data-pa="0.505" data-ia="0.655" data-overall="0.587"><td class="rank-cell">6</td><td class="judge-cell">Claude-Opus-4.8 <span class="category-badge cat-closed">CLOSED</span></td><td>0.505</td><td>0.655</td><td>0.587</td></tr>
+            <tr data-category="open" data-pa="0.431" data-ia="0.676" data-overall="0.573"><td class="rank-cell">7</td><td class="judge-cell">Qwen3.5-27B <span class="category-badge cat-open">OPEN</span></td><td>0.431</td><td>0.676</td><td>0.573</td></tr>
+            <tr data-category="closed" data-pa="0.594" data-ia="0.535" data-overall="0.562"><td class="rank-cell">8</td><td class="judge-cell">Gemini-3.5-Flash <span class="category-badge cat-closed">CLOSED</span></td><td>0.594</td><td>0.535</td><td>0.562</td></tr>
+            <tr data-category="closed" data-pa="0.548" data-ia="0.546" data-overall="0.538"><td class="rank-cell">9</td><td class="judge-cell">Qwen3.7-Plus <span class="category-badge cat-closed">CLOSED</span></td><td>0.548</td><td>0.546</td><td>0.538</td></tr>
+            <tr data-category="closed" data-pa="0.553" data-ia="0.539" data-overall="0.537"><td class="rank-cell">10</td><td class="judge-cell">Qwen3.7-Max <span class="category-badge cat-closed">CLOSED</span></td><td>0.553</td><td>0.539</td><td>0.537</td></tr>
+            <tr data-category="closed" data-pa="0.451" data-ia="0.584" data-overall="0.529"><td class="rank-cell">11</td><td class="judge-cell">Gemini-3.1-Pro <span class="category-badge cat-closed">CLOSED</span></td><td>0.451</td><td>0.584</td><td>0.529</td></tr>
+            <tr data-category="judge" data-pa="0.417" data-ia="0.585" data-overall="0.489"><td class="rank-cell">12</td><td class="judge-cell">PhyJudge-9B <span class="category-badge cat-judge">JUDGE</span></td><td>0.417</td><td>0.585</td><td>0.489</td></tr>
+            <tr data-category="open" data-pa="0.379" data-ia="0.461" data-overall="0.401"><td class="rank-cell">13</td><td class="judge-cell">Qwen3.5-9B <span class="category-badge cat-open">OPEN</span></td><td>0.379</td><td>0.461</td><td>0.401</td></tr>
+            <tr data-category="embodied" data-pa="0.256" data-ia="0.524" data-overall="0.369"><td class="rank-cell">14</td><td class="judge-cell">Cosmos3-Nano-Reasoner <span class="category-badge cat-embodied">EMBODIED</span></td><td>0.256</td><td>0.524</td><td>0.369</td></tr>
+            <tr data-category="embodied" data-pa="0.261" data-ia="0.484" data-overall="0.369"><td class="rank-cell">15</td><td class="judge-cell">Cosmos-Reason2-32B <span class="category-badge cat-embodied">EMBODIED</span></td><td>0.261</td><td>0.484</td><td>0.369</td></tr>
+            <tr data-category="open" data-pa="0.253" data-ia="0.440" data-overall="0.356"><td class="rank-cell">16</td><td class="judge-cell">GLM-4.6V-Flash <span class="category-badge cat-open">OPEN</span></td><td>0.253</td><td>0.440</td><td>0.356</td></tr>
+            <tr data-category="embodied" data-pa="0.209" data-ia="0.447" data-overall="0.304"><td class="rank-cell">17</td><td class="judge-cell">MiMo-Embodied-7B <span class="category-badge cat-embodied">EMBODIED</span></td><td>0.209</td><td>0.447</td><td>0.304</td></tr>
+            <tr data-category="open" data-pa="0.292" data-ia="0.341" data-overall="0.295"><td class="rank-cell">18</td><td class="judge-cell">Qwen3-VL-8B <span class="category-badge cat-open">OPEN</span></td><td>0.292</td><td>0.341</td><td>0.295</td></tr>
+            <tr data-category="closed" data-pa="0.179" data-ia="0.357" data-overall="0.278"><td class="rank-cell">19</td><td class="judge-cell">Claude-Haiku-4.5 <span class="category-badge cat-closed">CLOSED</span></td><td>0.179</td><td>0.357</td><td>0.278</td></tr>
+            <tr data-category="open" data-pa="0.204" data-ia="0.375" data-overall="0.271"><td class="rank-cell">20</td><td class="judge-cell">InternVL3.5-38B <span class="category-badge cat-open">OPEN</span></td><td>0.204</td><td>0.375</td><td>0.271</td></tr>
+            <tr data-category="open" data-pa="0.069" data-ia="0.362" data-overall="0.237"><td class="rank-cell">21</td><td class="judge-cell">MiMo-VL-7B <span class="category-badge cat-open">OPEN</span></td><td>0.069</td><td>0.362</td><td>0.237</td></tr>
+            <tr data-category="embodied" data-pa="0.085" data-ia="0.309" data-overall="0.205"><td class="rank-cell">22</td><td class="judge-cell">Cosmos-Reason2-2B <span class="category-badge cat-embodied">EMBODIED</span></td><td>0.085</td><td>0.309</td><td>0.205</td></tr>
+            <tr data-category="judge" data-pa="0.195" data-ia="0.191" data-overall="0.202"><td class="rank-cell">23</td><td class="judge-cell">VideoScore2-8B <span class="category-badge cat-judge">JUDGE</span></td><td>0.195</td><td>0.191</td><td>0.202</td></tr>
+            <tr data-category="embodied" data-pa="0.051" data-ia="0.196" data-overall="0.129"><td class="rank-cell">24</td><td class="judge-cell">RynnBrain-1.1-9B <span class="category-badge cat-embodied">EMBODIED</span></td><td>0.051</td><td>0.196</td><td>0.129</td></tr>
+            <tr data-category="embodied" data-pa="0.042" data-ia="0.197" data-overall="0.122"><td class="rank-cell">25</td><td class="judge-cell">RoboBrain2.5-8B <span class="category-badge cat-embodied">EMBODIED</span></td><td>0.042</td><td>0.197</td><td>0.122</td></tr>
+            <tr data-category="judge" data-pa="0.152" data-ia="0.147" data-overall="0.103"><td class="rank-cell">26</td><td class="judge-cell">VideoPhy2-7B <span class="category-badge cat-judge">JUDGE</span></td><td>0.152</td><td>0.147</td><td>0.103</td></tr>
+            <tr data-category="open" data-pa="0.139" data-ia="0.235" data-overall="0.101"><td class="rank-cell">27</td><td class="judge-cell">Qwen3.5-4B <span class="category-badge cat-open">OPEN</span></td><td>0.139</td><td>0.235</td><td>0.101</td></tr>
+            <tr data-category="judge" data-pa="0.095" data-ia="0.055" data-overall="0.077"><td class="rank-cell">28</td><td class="judge-cell">VideoCon-7B <span class="category-badge cat-judge">JUDGE</span></td><td>0.095</td><td>0.055</td><td>0.077</td></tr>
+            <tr data-category="embodied" data-pa="0.108" data-ia="0.096" data-overall="0.059"><td class="rank-cell">29</td><td class="judge-cell">Orca-4B <span class="category-badge cat-embodied">EMBODIED</span></td><td>0.108</td><td>0.096</td><td>0.059</td></tr>
+            <tr data-category="judge" data-pa="0.412" data-ia="" data-overall=""><td class="rank-cell">—</td><td class="judge-cell">WBench-30B-A3B <span class="category-badge cat-judge">JUDGE</span></td><td>0.412</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="delta-note has-text-centered"><strong>+0.089 overall Pearson r</strong> over Gemini-3.7-Flash.</p>
+    </div>
+  </section>
+
+  <footer class="footer site-footer">
+    <div class="container is-max-desktop">
+      <p>RoboJudge · Human-aligned evaluation for embodied video generation.</p>
+    </div>
+  </footer>
+</body>
+</html>
